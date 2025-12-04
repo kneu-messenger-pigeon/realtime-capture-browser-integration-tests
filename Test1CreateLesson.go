@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/chromedp/chromedp"
 	dekanatEvents "github.com/kneu-messenger-pigeon/dekanat-events"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func Test1CreateLesson(t *testing.T) {
@@ -31,11 +32,11 @@ func Test1CreateLesson(t *testing.T) {
 
 	err = chromedp.Run(ctx, chromedp.Tasks{
 		chromedp.Click(formXPath + `//button[text() = "Додати заняття"]`),
-		chromedp.WaitVisible(`//body`),
+		chromedp.WaitVisible(`//h2[text() = "Вид заняття"]`),
 	})
 	assert.NoError(t, err, "Failed to click on 'Додати заняття' button")
 
-	ctx, cancel = context.WithTimeout(ctx, time.Second*2)
+	ctx, cancel = context.WithTimeout(chromeCtx, time.Second*2)
 	defer cancel()
 
 	verifyLessonOrScoreForm(t)
@@ -47,7 +48,7 @@ func Test1CreateLesson(t *testing.T) {
 		return
 	}
 
-	ctx, cancel = context.WithTimeout(ctx, time.Second*15)
+	ctx, cancel = context.WithTimeout(chromeCtx, time.Second*15)
 	defer cancel()
 
 	dekanatReverseProxy.ClearBlockedRequests()

@@ -4,10 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/chromedp/chromedp"
 	"log"
 	"os"
 	"regexp"
+
+	"github.com/chromedp/chromedp"
 )
 
 func createChromeContext(chromeWsUrl string) (context.Context, context.CancelFunc) {
@@ -18,7 +19,6 @@ func createChromeContext(chromeWsUrl string) (context.Context, context.CancelFun
 		allocCtx, allocCtxCancel = createDesktopChromeAllocator(chromeWsUrl != "DESKTOP")
 	} else {
 		allocCtx, allocCtxCancel = createRemoteChromeAllocator(chromeWsUrl)
-
 	}
 
 	logFile, err := os.Create("chrome.log")

@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/chromedp/chromedp"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/chromedp/chromedp"
+	"github.com/stretchr/testify/assert"
 )
 
 var config Config

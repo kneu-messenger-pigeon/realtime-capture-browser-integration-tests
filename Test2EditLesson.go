@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/chromedp/chromedp"
 	dekanatEvents "github.com/kneu-messenger-pigeon/dekanat-events"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func Test2EditLesson(t *testing.T) {
@@ -38,7 +39,7 @@ func Test2EditLesson(t *testing.T) {
 	verifyLessonOrScoreForm(t)
 	makeScreenshot("edit_lesson_form")
 
-	radioClickCtx, radioClickCancel := context.WithTimeout(ctx, time.Millisecond*500)
+	radioClickCtx, radioClickCancel := context.WithTimeout(ctx, time.Second*2)
 	err = chromedp.Run(radioClickCtx, chromedp.Click(`(//*[@name ="tzn" and not(@checked)])[1]`))
 	radioClickCancel()
 

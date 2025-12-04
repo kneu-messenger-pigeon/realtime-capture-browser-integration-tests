@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/chromedp"
 	"github.com/stretchr/testify/assert"
-	"strings"
-	"testing"
-	"time"
 )
 
 func chooseGroup(groupName string, isCustomGroup bool) (groupPageUrl string) {
@@ -38,20 +39,37 @@ func chooseGroup(groupName string, isCustomGroup bool) (groupPageUrl string) {
 		return ""
 	}
 
-	fetchLinkCtx, cancelFetchLinkCtx := context.WithTimeout(ctx, time.Second*2)
-	err = chromedp.Run(fetchLinkCtx, chromedp.Click(fmt.Sprintf(`//div[contains(@class, "jumbotron")]//a[text() = "%s"]`, groupName)))
-	cancelFetchLinkCtx()
+	// three retry clicks to avoid flakiness
+	for i := 0; i < 3; i++ {
+		// find group element
+		groupLinkSelector := fmt.Sprintf(`//div[contains(@class, "jumbotron")]//a[text() = "%s"]`, groupName)
+		var groupLinkNodes []*cdp.Node
+		err = chromedp.Run(ctx, chromedp.Nodes(groupLinkSelector, &groupLinkNodes, chromedp.AtLeast(1)))
+		if err != nil || len(groupLinkNodes) == 0 {
+			fmt.Printf("Group %s not found\n", groupName)
+			makeScreenshot("group_not_found")
+			return ""
+		}
 
-	if err != nil {
-		fmt.Printf("Group %s not found\n", groupName)
-		makeScreenshot("group_not_found")
-		return ""
+		fetchLinkCtx, cancelFetchLinkCtx := context.WithTimeout(ctx, time.Second*5)
+		err = chromedp.Run(fetchLinkCtx, chromedp.Click(groupLinkSelector))
+
+		err = chromedp.Run(fetchLinkCtx, chromedp.Tasks{
+			chromedp.WaitVisible(
+				fmt.Sprintf(`//h2[contains(text(), "%s")]`, groupName),
+			),
+			chromedp.Location(&groupPageUrl),
+		})
+
+		cancelFetchLinkCtx()
+
+		if err == nil && groupPageUrl != "" {
+			break
+		} else {
+			fmt.Printf("Retrying click on group %s link\n", groupName)
+			time.Sleep(time.Millisecond * 500)
+		}
 	}
-
-	_ = chromedp.Run(ctx, chromedp.Tasks{
-		chromedp.WaitVisible(`//h2`),
-		chromedp.Location(&groupPageUrl),
-	})
 
 	return
 }
@@ -129,16 +147,19 @@ func chooseDisciplineInRegularGroup(disciplineId uint, semester uint) (err error
 
 func openLessonPopup(lessonDate time.Time) (err error) {
 	lessonSelector := fmt.Sprintf(
-		`//table[@id="mMarks"]//th[contains(., "%s")][last()]//a[contains(text(), "%s")]`,
+		`//div[@id="mMarks_wrapper"]//th[contains(., "%s")][last()]//a[contains(text(), "%s")]`,
 		lessonDate.Format("2.01.2006"),
 		lessonDate.Format("2.01.2006"),
 	)
+
 	ctx, cancel := context.WithTimeout(chromeCtx, time.Second*5)
 	defer cancel()
 
+	modalTitleSelector := `//*[contains(@class, "modal-title")][contains(text(), "Дії для заняття")]`
+
 	err = chromedp.Run(ctx, chromedp.Tasks{
 		chromedp.Click(lessonSelector),
-		chromedp.WaitVisible(`//*[contains(@class, "modal-title")][contains(text(), "Дії для заняття")]`),
+		chromedp.WaitVisible(modalTitleSelector),
 		chromedp.Sleep(time.Millisecond * 400),
 	})
 
@@ -152,6 +173,16 @@ func openLessonPopup(lessonDate time.Time) (err error) {
 		fmt.Printf("[debug] lessonSelector: %s\n", lessonSelector)
 		fmt.Printf("[debug] displayedLastLessonDate text: %s\n", displayedLastLessonDate)
 	}
+
+	// fetch modal title text
+	var modalTitleText string
+	err = chromedp.Run(chromeCtx, chromedp.Text(modalTitleSelector, &modalTitleText))
+	if err != nil {
+		fmt.Printf("[debug] failed to get modalTitleText: %v\n", err)
+		return err
+	}
+
+	fmt.Printf("Model for edit opened, title: %s\n", modalTitleText)
 
 	return err
 }
