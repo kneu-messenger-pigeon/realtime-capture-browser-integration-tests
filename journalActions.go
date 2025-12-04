@@ -172,6 +172,8 @@ func openLessonPopup(lessonDate time.Time) (err error) {
 
 		fmt.Printf("[debug] lessonSelector: %s\n", lessonSelector)
 		fmt.Printf("[debug] displayedLastLessonDate text: %s\n", displayedLastLessonDate)
+
+		return err
 	}
 
 	// fetch modal title text
